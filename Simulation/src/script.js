@@ -127,6 +127,7 @@ function degreesToRadians(degrees) {
   return radians;
 }
 
+// double check if the values are correct 
 function coriolis(altitude, latitude) {
   // deflection = 1/3 sqrt(8 * h ^ 3 / g) * w * cos( lambda )
 
@@ -403,7 +404,7 @@ function insideAnimate() {
   // Move the controls based on the movement vector and delta time:
   controlsPointerLock.moveForward(-direction.z * delta);
   controlsPointerLock.moveRight(direction.x * delta);
-  //controlsPointerLock.getObject().position.y += velocity.y * delta;
+  controlsPointerLock.getObject().position.y += direction.y * delta;
 
   controlsOrbit.update();
 
