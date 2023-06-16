@@ -118,6 +118,24 @@ function calc_airDensity(altitude, phi) {
   let P_base = 1 - (L * altitude) / T0;
   let P = P0 * Math.pow(P_base, P_exponent);
 
+  if (is_dry) return airDensity;
+  return (P * Md + Pv * (Mv - Md)) / (R * T);
+}
+
+function degreesToRadians(degrees) {
+  var radians = degrees * (Math.PI / 180);
+  return radians;
+}
+
+function coriolis(altitude, latitude) {
+  // deflection = 1/3 sqrt(8 * h ^ 3 / g) * w * cos( lambda )
+
+  let velocity_eastward = 4 * w * altitude * Math.cos(latitude);
+
+  return velocity_eastward;
+}
+
+
 
 const getElemet = document.querySelector(".statisPanel");
 const getShow = document.querySelector(".show");
@@ -307,7 +325,6 @@ controlsOrbit.distance = 5;
 // Add the controls to the scene:
 scene.add(controlsPointerLock.getObject());
 
-const velocity = new THREE.Vector3();
 const direction = new THREE.Vector3();
 
 // Set up the movement speed:
