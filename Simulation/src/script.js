@@ -358,7 +358,7 @@ let deflection =
   w *
   Math.cos(45);
 
-let SimulationSpeed= 0.001;
+let SimulationSpeed= 0.01;
 
 function insideAnimate() {
   requestAnimationFrame(animate);
