@@ -1,27 +1,32 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>04 - Local Server</title>
-    <link rel="stylesheet" href="./style.css" />
-  </head>
-  <body>
-    <canvas class="webgl"></canvas>
-    <div class="statisPanel">
-      <h2>Statistics Panel Data</h2>
-      <div class="elements">
-        <p class="element">Weight: <span id="weight"></span></p>
-        <p class="element">Drag: <span id="drag"></span></p>
-        <p class="element">Acceleration: <span id="acceleration"></span></p>
-        <p class="element">Velocity: <span id="velocity"></span></p>
-        <p class="element">Altitude: <span id="altitude"></span></p>
-        <p class="element">Air Density: <span id="air_density"></span></p>
-        <p class="element">Coriolis Force: <span id="coriolis_force"></span></p>
-        <p class="element">Wind Draft: <span id="wind_draft"></span></p>
-      </div>
-    <button class="show">Show the Panel</button>
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>04 - Local Server</title>
+  <link rel="stylesheet" href="./style.css" />
+</head>
+
+<body>
+  <canvas class="webgl"></canvas>
+  <div class="statisPanel">
+    <h2>Statistics Panel Data</h2>
+    <div class="elements">
+      <p class="element">Weight: <span id="weight"></span></p>
+      <p class="element">Drag: <span id="drag"></span></p>
+      <p class="element">Acceleration: <span id="acceleration"></span></p>
+      <p class="element">Velocity: <span id="velocity"></span></p>
+      <p class="element">Altitude: <span id="altitude"></span></p>
+      <p class="element">Air Density: <span id="air_density"></span></p>
+      <p class="element">Time: <span id="time"></span></p>
+      <p class="element">Coriolis Force: <span id="coriolis_force"></span></p>
+      <p class="element">Deflection: <span id="deflection"></span></p>
+      <p class="element">Wind Draft: <span id="wind_draft"></span></p>
     </div>
-    <script type="module" src="./script.js"></script>
-  </body>
+    <button class="show">Show the Panel</button>
+  </div>
+  <script type="module" src="./script.js"></script>
+</body>
+
 </html>
