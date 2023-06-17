@@ -239,7 +239,7 @@ const skyBoxMaterial = new THREE.ShaderMaterial({
   side: THREE.BackSide
 });
 
-const skyBoxGeometry = new THREE.BoxGeometry(10000, 10000, 10000);
+const skyBoxGeometry = new THREE.BoxGeometry(10000, 10000, 20000);
 const skyBox = new THREE.Mesh(skyBoxGeometry, skyBoxMaterial);
 scene.add(skyBox);
 
@@ -343,6 +343,9 @@ document.addEventListener('keydown', (event) => {
       break;
     case 'KeyE':
       direction.y = 1;
+      break;
+    case 'KeyT':
+      is_deployed = true
       break;
   }
 });
