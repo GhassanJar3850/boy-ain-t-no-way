@@ -2,6 +2,7 @@ import './style.css';
 import * as THREE from 'three'
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { PointerLockControls } from 'three/addons/controls/PointerLockControls.js';
+import { FontLoader } from 'three/addons/loaders/FontLoader.js';
 import * as dat from 'dat.gui';
 
 
@@ -12,7 +13,7 @@ import * as dat from 'dat.gui';
 // constants
 let gravity_acc = 9.80665;
 let airDensity = 1.225;
-let w = 7.2921159  * Math.pow(10, -5); // rad/s angular velocity of earth's rotation (W->E)
+let w = 7.2921159 * Math.pow(10, -5); // rad/s angular velocity of earth's rotation (W->E)
 
 // initial
 let initial_Humidity_ratio = 0;
@@ -70,7 +71,7 @@ function interpolate_drag_coeff(start, end, curr_area) {
   return (
     start +
     (end - start) *
-      Math.exp(-0.1 * Math.pow(curr_area / Area_of_the_body_Phase2 - 1, 2))
+    Math.exp(-0.1 * Math.pow(curr_area / Area_of_the_body_Phase2 - 1, 2))
   );
 }
 
@@ -152,41 +153,41 @@ getShow.addEventListener("click", function () {
   getElemet.style.transform = "";
   console.log(getElemet);
 
-function degreesToRadians(degrees) {
-  var radians = degrees * (Math.PI / 180);
-  return radians;
-}
+  function degreesToRadians(degrees) {
+    var radians = degrees * (Math.PI / 180);
+    return radians;
+  }
 
-function coriolis(altitude, latitude) {
-  // deflection = 1/3 sqrt(8 * h ^ 3 / g) * w * cos( lambda )
+  function coriolis(altitude, latitude) {
+    // deflection = 1/3 sqrt(8 * h ^ 3 / g) * w * cos( lambda )
 
-  let velocity_eastward = 4 * w * altitude * Math.cos(latitude);
+    let velocity_eastward = 4 * w * altitude * Math.cos(latitude);
 
-  return velocity_eastward;
-}
+    return velocity_eastward;
+  }
 
-// document.addEventListener("keydown", function (event) {
-//   if (event.key == "o") {
-//     // If it is, trigger a click event on the button
-//     phi += Math.PI / 120;
-//     cube.rotateZ(phi);
-//   }
-//   if (event.key == "p") {
-//     // If it is, trigger a click event on the button
-//     phi -= Math.PI / 120;
-//     cube.rotateZ(phi);
-//   }
-//   if (event.key == "q") {
-//     cube.rotateZ(-phi);
-//     phi = 0;
-//   }
-//   if (event.key == "g") {
-//     gravity_present = !gravity_present;
-//   }
-//   if (event.key == "h") {
-//     is_dry = !is_dry;
-//   }
-// });
+  // document.addEventListener("keydown", function (event) {
+  //   if (event.key == "o") {
+  //     // If it is, trigger a click event on the button
+  //     phi += Math.PI / 120;
+  //     cube.rotateZ(phi);
+  //   }
+  //   if (event.key == "p") {
+  //     // If it is, trigger a click event on the button
+  //     phi -= Math.PI / 120;
+  //     cube.rotateZ(phi);
+  //   }
+  //   if (event.key == "q") {
+  //     cube.rotateZ(-phi);
+  //     phi = 0;
+  //   }
+  //   if (event.key == "g") {
+  //     gravity_present = !gravity_present;
+  //   }
+  //   if (event.key == "h") {
+  //     is_dry = !is_dry;
+  //   }
+  // });
 
   // Reset the transform property after 2 seconds
   setTimeout(function () {
@@ -274,6 +275,34 @@ gui.addColor(parameters, 'color').onChange(() => {
   parachuterMaterial.color.set(parameters.color)
 });
 
+const fontloader = new FontLoader();
+fontloader.load(
+  'fonts/helvetiker_bold.typeface.json',
+  (font) => {
+    const textGeometry = new THREE.TextBufferGeometry(
+      'Hello Three.js',
+      {
+        font: font,
+        size: 0.5,
+        height: 0.2,
+        curveSegments: 12,
+        bevelEnabled: true,
+        bevelThickness: 0.03,
+        bevelSize: 0.02,
+        bevelOffset: 0,
+        bevelSegments: 5
+      }
+    )
+    const textMaterial = new THREE.MeshBasicMaterial()
+    const text = new THREE.Mesh(textGeometry, textMaterial);
+    scene.add(text);
+    text.position.set(0, 0, 0)
+  }
+);
+
+
+
+
 // Camera:
 const camera = new THREE.PerspectiveCamera(75, sizes.width / sizes.height, 0.1, 10000);
 camera.position.set(parachuter.position.x + 100, parachuter.position.y + 100, parachuter.position.z);
@@ -310,21 +339,21 @@ renderer.setSize(sizes.width, sizes.height);
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 
 // Create a controls object using PointerLockControls:
-const controlsPointerLock = new PointerLockControls(camera, document.body);
+// const controlsPointerLock = new PointerLockControls(camera, document.body);
 const controlsOrbit = new OrbitControls(camera, canvas);
 controlsOrbit.enableDamping = true;
 controlsOrbit.maxDistance = 1000;
 controlsOrbit.minDistance = 200;
-controlsOrbit.maxPolarAngle = Math.PI;
+// controlsOrbit.maxPolarAngle = Math.PI;
 
-controlsPointerLock.target = parachuter.position;
+// controlsPointerLock.target = parachuter.position;
 controlsOrbit.target = parachuter.position;
-controlsPointerLock.distance = 5;
+// controlsPointerLock.distance = 5;
 controlsOrbit.distance = 5;
 
 
 // Add the controls to the scene:
-scene.add(controlsPointerLock.getObject());
+// scene.add(controlsPointerLock.getObject());
 
 const direction = new THREE.Vector3();
 
@@ -383,11 +412,11 @@ let prevTime = performance.now();
 
 let deflection =
   (1 / 3) *
-  Math.sqrt((8 * Math.pow(5000,3)) / gravity_acc) *
+  Math.sqrt((8 * Math.pow(5000, 3)) / gravity_acc) *
   w *
   Math.cos(45);
 
-let SimulationSpeed= 0.01;
+let SimulationSpeed = 0.5;
 
 function insideAnimate() {
   requestAnimationFrame(animate);
@@ -402,9 +431,9 @@ function insideAnimate() {
   // velocity.z = direction.z * speed;
 
   // Move the controls based on the movement vector and delta time:
-  controlsPointerLock.moveForward(-direction.z * delta);
-  controlsPointerLock.moveRight(direction.x * delta);
-  controlsPointerLock.getObject().position.y += direction.y * delta;
+  // controlsPointerLock.moveForward(-direction.z * delta);
+  // controlsPointerLock.moveRight(direction.x * delta);
+  // controlsPointerLock.getObject().position.y += direction.y * delta;
 
   controlsOrbit.update();
 
@@ -434,10 +463,10 @@ function insideAnimate() {
 
     dragForce.setY(
       0.5 *
-        calc_airDensity(parachuter.position.y, Humidity_ratio) *
-        velocity_squared *
-        get_current_phase_drag_coeff(t) *
-        get_current_phase_area(t, Area_of_the_body_Phase2)
+      calc_airDensity(parachuter.position.y, Humidity_ratio) *
+      velocity_squared *
+      get_current_phase_drag_coeff(t) *
+      get_current_phase_area(t, Area_of_the_body_Phase2)
     );
 
     // console.log("weight:" + Weight.y + "   drag:" + dragForce.y);
@@ -447,45 +476,45 @@ function insideAnimate() {
     //   acceleration = 0;
     // }
 
-    velocity.y+=acceleration.y*SimulationSpeed;
-    velocity.z += coriolis(parachuter.position.y, 45)*SimulationSpeed;
+    velocity.y += acceleration.y * SimulationSpeed;
+    velocity.z += coriolis(parachuter.position.y, 45) * SimulationSpeed;
     // Altitude -= velocity.y * SimulationSpeed;
     // position = Altitude - 0.5 * acceleration.y * Math.pow(SimulationSpeed, 2);
 
     /* prev code */
 
     if (parachuter.position.y - velocity.y >= 0) {
-      parachuter.position.z += velocity.z*SimulationSpeed;
-      parachuter.position.y -= velocity.y*SimulationSpeed;
+      parachuter.position.z += velocity.z * SimulationSpeed;
+      parachuter.position.y -= velocity.y * SimulationSpeed;
     }
 
     camera.position.y = parachuter.position.y + 100;
     console.log(
       "alt = " +
-        parachuter.position.y.toPrecision(5) +
-        "\nv = " +
-        velocity.y.toPrecision(3) +
-        "\na = " +
-        acceleration.y.toPrecision(3) +
-        "\ndF = " +
-        dragForce.y.toPrecision(3) +
-        "\nW = " +
-        Weight.y.toPrecision(3) +
-        "\nv = " +
-        velocity.y.toPrecision(3) +
-        "\ntime = " +
-        time +
-        "\nV_coriolis = " +
-        velocity.z.toPrecision(3)+
-        "\ndeflection = " +
-        deflection.toPrecision(3) +
-        "\ntime = "+time
+      parachuter.position.y.toPrecision(5) +
+      "\nv = " +
+      velocity.y.toPrecision(3) +
+      "\na = " +
+      acceleration.y.toPrecision(3) +
+      "\ndF = " +
+      dragForce.y.toPrecision(3) +
+      "\nW = " +
+      Weight.y.toPrecision(3) +
+      "\nv = " +
+      velocity.y.toPrecision(3) +
+      "\ntime = " +
+      time +
+      "\nV_coriolis = " +
+      velocity.z.toPrecision(3) +
+      "\ndeflection = " +
+      deflection.toPrecision(3) +
+      "\ntime = " + time
     );
   } else {
     parachuter.position.y = 25;
   }
 
-  time+=SimulationSpeed;
+  time += SimulationSpeed;
   // console.log("\nvel="+velocity.y);
 
   // -----------------
