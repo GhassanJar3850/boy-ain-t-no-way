@@ -5,6 +5,7 @@ import { PointerLockControls } from 'three/addons/controls/PointerLockControls.j
 import * as dat from 'dat.gui';
 
 
+// Statistic Panel Data:
 const getElemet = document.querySelector(".statisPanel");
 const getShow = document.querySelector(".show");
 
@@ -18,7 +19,7 @@ getShow.addEventListener("click", function () {
   getElemet.style.transform = "";
   console.log(getElemet);
 
-  // Reset the transform property after 2 seconds
+  // Reset the transform property:
   setTimeout(function () {
     getElemet.style.transform = "translateY(0px)";
     getShow.style.opacity = "0";
