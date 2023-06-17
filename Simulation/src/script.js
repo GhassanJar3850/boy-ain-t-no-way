@@ -2,52 +2,40 @@ import './style.css';
 import * as THREE from 'three'
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import * as dat from 'dat.gui';
+import * as Constants from "./constants";
+import * as Variables from "./variables";
+
+
+// Parameters:
+const physicsParameters = {
+  weight: Variables.initial_mass,
+};
+
+// Parameters:
+const parameters = {
+  color: 0xff0000,
+};
+//  /Parameters 
+
 
 // d = (1/2) * g * t ^ 2  the formula to calculate the distance surpassed of a free falling object
 
 /* Variables */
 
-const Wight = window.prompt('Please enter the Parachuter Wight:');
-
-
-// constants
-let gravity_acc = 9.80665;
-let airDensity = 1.225;
-let w = 7.2921159 * Math.pow(10, -5); // rad/s angular velocity of earth's rotation (W->E)
-
-// initial
-let initial_Humidity_ratio = 0;
-let initial_mass = Wight; // 80
-let initial_Altitude = 2200;
-let initial_Area_of_the_body_Phase1 = 0.5;
-let initial_Drag_Coefficient_Phase1 = 0.7;
-
-
-
-let initial_Area_of_the_body_Phase2 = 3.5;
-let initial_Drag_Coefficient_Phase2 = 1.5;
-
 var t = 0;
 var time = 1;
 
-/* Parameters */
-const physicsParameters = {
-  weight: initial_mass,
-};
-/* /Parameters */
-
-
 // controlled
-let Humidity_ratio = initial_Humidity_ratio;
-// let mass = physicsParameters.weight; //80
-let Altitude = initial_Altitude;
-let Area_of_the_body_Phase1 = initial_Area_of_the_body_Phase1;
-let Drag_Coefficient_Phase1 = initial_Drag_Coefficient_Phase1;
+let Humidity_ratio = Variables.initial_Humidity_ratio;
+let mass = physicsParameters.weight;
+let Altitude = Variables.initial_Altitude;
+let Area_of_the_body_Phase1 = Variables.initial_Area_of_the_body_Phase1;
+let Drag_Coefficient_Phase1 = Variables.initial_Drag_Coefficient_Phase1;
 
-let current_Area = initial_Area_of_the_body_Phase1;
+let current_Area = Variables.initial_Area_of_the_body_Phase1;
 
-let Area_of_the_body_Phase2 = initial_Area_of_the_body_Phase2;
-let Drag_Coefficient_Phase2 = initial_Drag_Coefficient_Phase2;
+let Area_of_the_body_Phase2 = Variables.initial_Area_of_the_body_Phase2;
+let Drag_Coefficient_Phase2 = Variables.initial_Drag_Coefficient_Phase2;
 
 let Weight = new THREE.Vector3(0, 0, 0);
 let dragForce = new THREE.Vector3(0, 0, 0); // y
@@ -105,7 +93,7 @@ function toggle_gravity() {
   if (!gravity_present) {
     return 0;
   } else {
-    return gravity_acc;
+    return Constants.GRAVITY_ACC;
   }
 }
 
@@ -124,11 +112,11 @@ function calc_airDensity(altitude, phi) {
 
   let Pv = phi * Psat; // Pa
 
-  let P_exponent = (gravity_acc * Md) / (R * L) - 1;
+  let P_exponent = (Constants.GRAVITY_ACC * Md) / (R * L) - 1;
   let P_base = 1 - (L * altitude) / T0;
   let P = P0 * Math.pow(P_base, P_exponent);
 
-  if (is_dry) return airDensity;
+  if (is_dry) return Constants.AIRDENSITY;
   return (P * Md + Pv * (Mv - Md)) / (R * T);
 }
 
@@ -141,11 +129,10 @@ function degreesToRadians(degrees) {
 function coriolis(altitude, latitude) {
   // deflection = 1/3 sqrt(8 * h ^ 3 / g) * w * cos( lambda )
 
-  let velocity_eastward = 4 * w * altitude * Math.cos(latitude);
+  let velocity_eastward = 4 * Constants.W * altitude * Math.cos(latitude);
 
   return velocity_eastward;
 }
-
 
 
 const getElemet = document.querySelector(".statisPanel");
@@ -167,7 +154,7 @@ getShow.addEventListener("click", function () {
   function coriolis(altitude, latitude) {
     // deflection = 1/3 sqrt(8 * h ^ 3 / g) * w * cos( lambda )
 
-    let velocity_eastward = 4 * w * altitude * Math.cos(latitude);
+    let velocity_eastward = 4 * Constants.W * altitude * Math.cos(latitude);
 
     return velocity_eastward;
   }
@@ -195,7 +182,7 @@ getShow.addEventListener("click", function () {
   //   }
   // });
 
-  // Reset the transform property after 2 seconds
+  // Reset the transform property
   setTimeout(function () {
     getElemet.style.transform = "translateY(0px)";
     getShow.style.opacity = "0";
@@ -257,13 +244,6 @@ const skyBox = new THREE.Mesh(skyBoxGeometry, skyBoxMaterial);
 scene.add(skyBox);
 
 
-// Parameters:
-const parameters = {
-  color: 0xff0000,
-};
-
-
-
 // Parachuter (temporarily):
 const parachuterGeometry = new THREE.BoxGeometry(50, 50, 50);
 const parachuterMaterial = new THREE.MeshBasicMaterial({ color: parameters.color });
@@ -284,7 +264,15 @@ Parachuter.add(parachuterMaterial, 'wireframe');
 Parachuter.addColor(parameters, 'color').onChange(() => {
   parachuterMaterial.color.set(parameters.color)
 });
-physics.add(physicsParameters, 'weight');
+
+// Define a variable to store the button action
+const buttonAction = function() {
+  location.reload();
+};
+
+// Add the button control to the GUI
+gui.add({ clickButton: buttonAction }, 'clickButton').name('Reload The Simulation!');
+
 
 // Camera:
 const camera = new THREE.PerspectiveCamera(75, sizes.width / sizes.height, 0.1, 10000);
@@ -326,8 +314,6 @@ const controlsOrbit = new OrbitControls(camera, canvas);
 controlsOrbit.enableDamping = true;
 controlsOrbit.maxDistance = 1000;
 controlsOrbit.minDistance = 200;
-// controlsOrbit.maxPolarAngle = Math.PI;
-
 controlsOrbit.target = parachuter.position;
 controlsOrbit.distance = 5;
 
@@ -389,29 +375,24 @@ let prevTime = performance.now();
 
 let deflection =
   (1 / 3) *
-  Math.sqrt((8 * Math.pow(5000, 3)) / gravity_acc) *
-  w *
+  Math.sqrt((8 * Math.pow(5000, 3)) / Constants.GRAVITY_ACC) *
+  Constants.W *
   Math.cos(45);
 
-let SimulationSpeed = 0.05;
+let SimulationSpeed = Variables.SimulationSpeed;
 
 function insideAnimate() {
   requestAnimationFrame(animate);
 
   const currentTime = performance.now();
-  const delta = (currentTime - prevTime) / 100;
+  const delta = currentTime - prevTime;
   prevTime = currentTime;
-
-  // Calculate the movement vector:
-  // velocity.x = direction.x * speed;
-  // velocity.y = direction.y * speed;
-  // velocity.z = direction.z * speed;
 
   controlsOrbit.update();
 
 
   // Player Movement:
-  if (parachuter.position.y > 25) {
+  if (parachuter.position.y >= 75) {
     /* prev code */
 
     if (is_deployed && current_Area < Area_of_the_body_Phase2) {
@@ -419,7 +400,7 @@ function insideAnimate() {
       console.log(t);
     }
 
-    Weight.setY(toggle_gravity() * physicsParameters.weight);
+    Weight.setY(toggle_gravity() * mass);
     let velocity_squared = Math.pow(velocity.y, 2);
 
     // console.log(
@@ -442,7 +423,7 @@ function insideAnimate() {
     );
 
     // console.log("weight:" + Weight.y + "   drag:" + dragForce.y);
-    acceleration.setY((Weight.y - dragForce.y) / physicsParameters.weight);
+    acceleration.setY((Weight.y - dragForce.y) / mass);
 
     // if (acceleration.y < precision / 100 && acceleration.y > 0) {
     //   acceleration = 0;
@@ -471,15 +452,14 @@ function insideAnimate() {
     document.getElementById("time").innerText = time.toPrecision(3);
     document.getElementById("coriolis_force").innerText = velocity.z.toPrecision(3);
     document.getElementById("deflection").innerText = deflection.toPrecision(3);
-    document.getElementById("air_density").innerText = "1.293 kg m−3";
+    document.getElementById("air_density").innerText = `1.293 kg m−3`;
     document.getElementById("wind_draft").innerText = 0;
+
+    time += SimulationSpeed;
 
   } else {
     parachuter.position.y = 25;
   }
-
-  time += SimulationSpeed;
-  // console.log("\nvel="+velocity.y);
 
   // -----------------
 
