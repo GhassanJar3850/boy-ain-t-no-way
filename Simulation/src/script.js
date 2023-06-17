@@ -3,10 +3,12 @@ import * as THREE from 'three'
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import * as dat from 'dat.gui';
 
-
 // d = (1/2) * g * t ^ 2  the formula to calculate the distance surpassed of a free falling object
 
 /* Variables */
+
+const Wight = window.prompt('Please enter the Parachuter Wight:');
+
 
 // constants
 let gravity_acc = 9.80665;
@@ -15,10 +17,11 @@ let w = 7.2921159 * Math.pow(10, -5); // rad/s angular velocity of earth's rotat
 
 // initial
 let initial_Humidity_ratio = 0;
-let initial_mass = 80; // 80
+let initial_mass = Wight; // 80
 let initial_Altitude = 2200;
 let initial_Area_of_the_body_Phase1 = 0.5;
 let initial_Drag_Coefficient_Phase1 = 0.7;
+
 
 
 let initial_Area_of_the_body_Phase2 = 3.5;
@@ -27,9 +30,16 @@ let initial_Drag_Coefficient_Phase2 = 1.5;
 var t = 0;
 var time = 1;
 
+/* Parameters */
+const physicsParameters = {
+  weight: initial_mass,
+};
+/* /Parameters */
+
+
 // controlled
 let Humidity_ratio = initial_Humidity_ratio;
-let mass = initial_mass; //80
+// let mass = physicsParameters.weight; //80
 let Altitude = initial_Altitude;
 let Area_of_the_body_Phase1 = initial_Area_of_the_body_Phase1;
 let Drag_Coefficient_Phase1 = initial_Drag_Coefficient_Phase1;
@@ -53,6 +63,7 @@ let is_dry = true;
 let fps = 1;
 
 /* /Variables */
+
 
 /* Functions */
 
@@ -141,10 +152,9 @@ const getElemet = document.querySelector(".statisPanel");
 const getShow = document.querySelector(".show");
 
 getElemet.addEventListener("click", function () {
-  getElemet.style.transform = "translateY(-395px)";
+  getElemet.style.transform = `translateY(${-getElemet.offsetHeight + 60}px)`;
   getShow.style.opacity = "1";
 });
-
 
 getShow.addEventListener("click", function () {
   getElemet.style.transform = "";
@@ -210,11 +220,6 @@ const sizes = {
   height: window.innerHeight
 }
 
-// Parameters:
-const parameters = {
-  color: 0xff0000,
-};
-
 // Canvas:
 const canvas = document.querySelector('canvas.webgl');
 
@@ -251,9 +256,12 @@ const skyBoxGeometry = new THREE.BoxGeometry(10000, 10000, 10000);
 const skyBox = new THREE.Mesh(skyBoxGeometry, skyBoxMaterial);
 scene.add(skyBox);
 
-// skyTexture.generateMipmaps = false
-// skyTexture.minFilter = THREE.NearestFilter
-// skyTexture.magFilter = THREE.NearestFilter
+
+// Parameters:
+const parameters = {
+  color: 0xff0000,
+};
+
 
 
 // Parachuter (temporarily):
@@ -263,13 +271,20 @@ const parachuter = new THREE.Mesh(parachuterGeometry, parachuterMaterial);
 parachuter.position.y = 5000;
 scene.add(parachuter);
 
+
+
 // Dat GUI:
 const gui = new dat.GUI({ width: 300 });
-gui.add(parachuterMaterial, 'visible');
-gui.add(parachuterMaterial, 'wireframe');
-gui.addColor(parameters, 'color').onChange(() => {
+
+// Create a new folder
+const Parachuter = gui.addFolder('Parachuter');
+const physics = gui.addFolder('physics');
+Parachuter.add(parachuterMaterial, 'visible');
+Parachuter.add(parachuterMaterial, 'wireframe');
+Parachuter.addColor(parameters, 'color').onChange(() => {
   parachuterMaterial.color.set(parameters.color)
 });
+physics.add(physicsParameters, 'weight');
 
 // Camera:
 const camera = new THREE.PerspectiveCamera(75, sizes.width / sizes.height, 0.1, 10000);
@@ -404,7 +419,7 @@ function insideAnimate() {
       console.log(t);
     }
 
-    Weight.setY(toggle_gravity() * mass);
+    Weight.setY(toggle_gravity() * physicsParameters.weight);
     let velocity_squared = Math.pow(velocity.y, 2);
 
     // console.log(
@@ -427,7 +442,7 @@ function insideAnimate() {
     );
 
     // console.log("weight:" + Weight.y + "   drag:" + dragForce.y);
-    acceleration.setY((Weight.y - dragForce.y) / mass);
+    acceleration.setY((Weight.y - dragForce.y) / physicsParameters.weight);
 
     // if (acceleration.y < precision / 100 && acceleration.y > 0) {
     //   acceleration = 0;
@@ -456,7 +471,7 @@ function insideAnimate() {
     document.getElementById("time").innerText = time.toPrecision(3);
     document.getElementById("coriolis_force").innerText = velocity.z.toPrecision(3);
     document.getElementById("deflection").innerText = deflection.toPrecision(3);
-    document.getElementById("air_density").innerText = 0;
+    document.getElementById("air_density").innerText = "1.293 kg m−3";
     document.getElementById("wind_draft").innerText = 0;
 
   } else {
