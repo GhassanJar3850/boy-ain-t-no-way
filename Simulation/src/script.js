@@ -2,6 +2,7 @@ import './style.css';
 import * as THREE from 'three'
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { PointerLockControls } from 'three/addons/controls/PointerLockControls.js';
+import { FBXLoader } from 'three/addons/loaders/FBXLoader.js';
 import * as dat from 'dat.gui';
 
 
@@ -15,7 +16,7 @@ let airDensity = 1.225;
 let w = 7.2921159  * Math.pow(10, -5); // rad/s angular velocity of earth's rotation (W->E)
 
 // initial
-let initial_Humidity_ratio = 0;
+let initial_Humidity_ratio = 0;z
 let initial_mass = 80; // 80
 let initial_Altitude = 2200;
 let initial_Area_of_the_body_Phase1 = 0.5;
@@ -131,7 +132,7 @@ function degreesToRadians(degrees) {
 function coriolis(altitude, latitude) {
   // deflection = 1/3 sqrt(8 * h ^ 3 / g) * w * cos( lambda )
 
-  let velocity_eastward = 4 * w * altitude * Math.cos(latitude);
+  let velocity_eastward = 4 * w * altitude * Math.cos(degreesToRadians(latitude));
 
   return velocity_eastward;
 }
@@ -152,18 +153,6 @@ getShow.addEventListener("click", function () {
   getElemet.style.transform = "";
   console.log(getElemet);
 
-function degreesToRadians(degrees) {
-  var radians = degrees * (Math.PI / 180);
-  return radians;
-}
-
-function coriolis(altitude, latitude) {
-  // deflection = 1/3 sqrt(8 * h ^ 3 / g) * w * cos( lambda )
-
-  let velocity_eastward = 4 * w * altitude * Math.cos(latitude);
-
-  return velocity_eastward;
-}
 
 // document.addEventListener("keydown", function (event) {
 //   if (event.key == "o") {
@@ -260,6 +249,31 @@ scene.add(skyBox);
 
 
 // Parachuter (temporarily):
+
+// const loader = new FBXLoader();
+// 				loader.load( './assets/Falling.fbx', function ( object ) {
+
+// 					mixer = new THREE.AnimationMixer( object );
+
+// 					const action = mixer.clipAction( object.animations[ 0 ] );
+// 					action.play();
+
+// 					object.traverse( function ( child ) {
+
+// 						if ( child.isMesh ) {
+
+// 							child.castShadow = true;
+// 							child.receiveShadow = true;
+
+// 						}
+
+// 					} );
+
+// 					scene.add( object );
+
+// 				} );
+
+
 const parachuterGeometry = new THREE.BoxGeometry(50, 50, 50);
 const parachuterMaterial = new THREE.MeshBasicMaterial({ color: parameters.color });
 const parachuter = new THREE.Mesh(parachuterGeometry, parachuterMaterial);
@@ -414,7 +428,7 @@ function insideAnimate() {
     /* prev code */
 
     if (is_deployed && current_Area < Area_of_the_body_Phase2) {
-      t += 1 / speed;
+      t += SimulationSpeed;
       console.log(t);
     }
 
@@ -481,6 +495,22 @@ function insideAnimate() {
         deflection.toPrecision(3) +
         "\ntime = "+time
     );
+
+    {
+      document.getElementById("drag").textContent = dragForce.y.toPrecision(5);
+      document.getElementById("weight").textContent = Weight.y.toPrecision(5);
+      document.getElementById("acceleration").textContent =
+        acceleration.y.toPrecision(5);
+      document.getElementById("velocity").textContent =
+        velocity.y.toPrecision(5);
+      document.getElementById("altitude").textContent = parachuter.position.y.toPrecision(5);
+      document.getElementById("air_density").textContent = calc_airDensity(
+        Altitude,
+        Humidity_ratio
+      ).toPrecision(5);
+
+      document.getElementById("coriolis_force").textContent =  velocity.z.toPrecision(3);
+    }
   } else {
     parachuter.position.y = 25;
   }
