@@ -1,5 +1,7 @@
 import UniformNode from '../core/UniformNode.js';
-import UVNode from './UVNode.js';
+import { uv } from './UVNode.js';
+import { addNodeClass } from '../core/Node.js';
+import { addNodeElement, nodeProxy } from '../shadernode/ShaderNode.js';
 
 let defaultUV;
 
@@ -7,7 +9,7 @@ class TextureNode extends UniformNode {
 
 	constructor( value, uvNode = null, levelNode = null ) {
 
-		super( value, 'vec4' );
+		super( value );
 
 		this.isTextureNode = true;
 
@@ -22,6 +24,14 @@ class TextureNode extends UniformNode {
 
 	}
 
+	getNodeType( /*builder*/ ) {
+
+		if ( this.value.isDepthTexture === true ) return 'float';
+
+		return 'vec4';
+
+	}
+
 	getInputType( /*builder*/ ) {
 
 		return 'texture';
@@ -30,9 +40,7 @@ class TextureNode extends UniformNode {
 
 	getDefaultUV() {
 
-		defaultUV ||= new UVNode();
-
-		return defaultUV;
+		return defaultUV || ( defaultUV = uv() );
 
 	}
 
@@ -46,11 +54,11 @@ class TextureNode extends UniformNode {
 
 		if ( uvNode === null && builder.context.getUVNode ) {
 
-			uvNode = builder.context.getUVNode( this )
+			uvNode = builder.context.getUVNode( this );
 
 		}
 
-		uvNode ||= this.getDefaultUV();
+		uvNode || ( uvNode = this.getDefaultUV() );
 
 		//
 
@@ -81,7 +89,7 @@ class TextureNode extends UniformNode {
 
 		}
 
-		const textureProperty = super.generate( builder, 'texture' );
+		const textureProperty = super.generate( builder, 'property' );
 
 		if ( output === 'sampler' ) {
 
@@ -93,6 +101,7 @@ class TextureNode extends UniformNode {
 
 		} else {
 
+			const nodeType = this.getNodeType( builder );
 			const nodeData = builder.getDataFromNode( this );
 
 			let propertyName = nodeData.propertyName;
@@ -100,32 +109,32 @@ class TextureNode extends UniformNode {
 			if ( propertyName === undefined ) {
 
 				const uvSnippet = uvNode.build( builder, 'vec2' );
-				const nodeVar = builder.getVarFromNode( this, 'vec4' );
+				const nodeVar = builder.getVarFromNode( this, nodeType );
 
 				propertyName = builder.getPropertyName( nodeVar );
 
 				let snippet = null;
 
-				if ( levelNode?.isNode === true) {
+				if ( levelNode && levelNode.isNode === true ) {
 
 					const levelSnippet = levelNode.build( builder, 'float' );
 
-					snippet = builder.getTextureLevel( textureProperty, uvSnippet, levelSnippet );
+					snippet = builder.getTextureLevel( texture, textureProperty, uvSnippet, levelSnippet );
 
 				} else {
 
-					snippet = builder.getTexture( textureProperty, uvSnippet );
+					snippet = builder.getTexture( texture, textureProperty, uvSnippet );
 
 				}
 
-				builder.addFlowCode( `${propertyName} = ${snippet}` );
+				builder.addLineFlowCode( `${propertyName} = ${snippet}` );
 
 				nodeData.snippet = snippet;
 				nodeData.propertyName = propertyName;
 
 			}
 
-			return builder.format( propertyName, 'vec4', output );
+			return builder.format( propertyName, nodeType, output );
 
 		}
 
@@ -150,3 +159,10 @@ class TextureNode extends UniformNode {
 }
 
 export default TextureNode;
+
+export const texture = nodeProxy( TextureNode );
+export const sampler = ( aTexture ) => ( aTexture.isNode === true ? aTexture : texture( aTexture ) ).convert( 'sampler' );
+
+addNodeElement( 'texture', texture );
+
+addNodeClass( TextureNode );

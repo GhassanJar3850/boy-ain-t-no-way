@@ -1,8 +1,7 @@
 import "./style.css";
 import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
-import { PointerLockControls } from "three/addons/controls/PointerLockControls.js";
-import { FBXLoader } from "three/addons/loaders/FBXLoader.js";
+import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import * as dat from "dat.gui";
 import * as Constants from "./constants";
 import * as Variables from "./variables";
@@ -22,6 +21,7 @@ const parameters = {
 
 /* Variables */
 
+var startSimulation =false;
 var t = 0;
 var time = 1;
 
@@ -130,7 +130,8 @@ function degreesToRadians(degrees) {
 function coriolis(altitude, latitude) {
   // deflection = 1/3 sqrt(8 * h ^ 3 / g) * w * cos( lambda )
 
-  let velocity_eastward = 4 * Constants.W * altitude * Math.abs(Math.sin(latitude));
+  let velocity_eastward =
+    4 * Constants.W * altitude * Math.abs(Math.sin(latitude));
 
   return velocity_eastward;
 }
@@ -228,30 +229,80 @@ const skyBoxGeometry = new THREE.BoxGeometry(10000, 10000, 20000);
 const skyBox = new THREE.Mesh(skyBoxGeometry, skyBoxMaterial);
 scene.add(skyBox);
 
-// Parachuter (temporarily):
 
-// const loader = new FBXLoader();
-// 				loader.load( './assets/Falling.fbx', function ( object ) {
 
-// 					mixer = new THREE.AnimationMixer( object );
+// Parachuter NOW 
 
-// 					const action = mixer.clipAction( object.animations[ 0 ] );
-// 					action.play();
+// Add a Model:
+const loader = new GLTFLoader();
 
-// 					object.traverse( function ( child ) {
+let mesh;
+// Load a glTF resource
+loader.load (
+  // path to the file
+  "models/skydiver.glb",
 
-// 						if ( child.isMesh ) {
+  // called when the resource is loaded
+  function (gltf) {
+    mesh = gltf.scene.children[0];
+    const animation = gltf.animations[0];
 
-// 							child.castShadow = true;
-// 							child.receiveShadow = true;
+    // Create an AnimationMixer, which is used to play and control animations
+    const mixer = new THREE.AnimationMixer(gltf.scene);
 
-// 						}
+    // Create an AnimationAction, which represents a single animation that can be played
+    const action = mixer.clipAction(animation);
 
-// 					} );
+    // Start playing the animation
+    action.play();
+    // Set the scale of the mesh
+    mesh.scale.set(2, 2, 2);
+    mesh.position.y = 5000;
 
-// 					scene.add( object );
+    let prevTime = performance.now();
 
-// 				} );
+    function ss() {
+      requestAnimationFrame(ss);
+      const currentTime = performance.now();
+      const delta = currentTime - prevTime;
+      prevTime = currentTime;
+      
+      mesh.position.y -= 1 * delta;
+    }
+    ss();
+    // access the loaded object
+    const model = gltf.scene;
+    {
+      // Get the animation
+      const animation = gltf.animations[0];
+
+      // Create an AnimationMixer, which is used to play and control animations
+      const mixer = new THREE.AnimationMixer(gltf.scene);
+
+      // Create an AnimationAction, which represents a single animation that can be played
+      const action = mixer.clipAction(animation);
+
+      // Start playing the animation
+      action.play();
+
+      // add the model to the scene
+      scene.add(mesh);
+    }
+  },
+
+  // called while loading is progressing
+  function (xhr) {
+    console.log((xhr.loaded / xhr.total) * 100 + "% loaded");
+    if(xhr.loaded == 100){
+      startSimulation;
+    }
+  },
+
+  // called when loading has errors
+  function (error) {
+    console.log("An error happened", error);
+  }
+);
 
 const parachuterGeometry = new THREE.BoxGeometry(50, 50, 50);
 const parachuterMaterial = new THREE.MeshBasicMaterial({
@@ -338,6 +389,8 @@ const direction = new THREE.Vector3();
 // Set up the movement speed:
 const speed = 100;
 
+
+
 // Set up the keyboard event handlers:
 document.addEventListener("keydown", (event) => {
   switch (event.code) {
@@ -406,8 +459,10 @@ let deflection =
 let SimulationSpeed = Variables.SimulationSpeed;
 
 function insideAnimate() {
+
   requestAnimationFrame(animate);
 
+  console.log(mesh);
   const currentTime = performance.now();
   const delta = currentTime - prevTime;
   prevTime = currentTime;
@@ -453,7 +508,7 @@ function insideAnimate() {
     // }
 
     velocity.y += acceleration.y * SimulationSpeed;
-    velocity.z = interpolate (0,deflection,(1-parachuter.position.y/5000));
+    velocity.z = interpolate(0, deflection, 1 - parachuter.position.y / 5000);
     // Altitude -= velocity.y * SimulationSpeed;
     // position = Altitude - 0.5 * acceleration.y * Math.pow(SimulationSpeed, 2);
 
@@ -478,7 +533,8 @@ function insideAnimate() {
     document.getElementById("coriolis_force").innerText =
       velocity.z.toPrecision(3);
     document.getElementById("deflection").innerText = deflection.toPrecision(3);
-    document.getElementById("air_density").innerText =calc_airDensity(parachuter.position.y,Humidity_ratio) +'kg m−3';
+    document.getElementById("air_density").innerText =
+      calc_airDensity(parachuter.position.y, Humidity_ratio) + "kg m−3";
     document.getElementById("wind_draft").innerText = 0;
 
     time += SimulationSpeed;

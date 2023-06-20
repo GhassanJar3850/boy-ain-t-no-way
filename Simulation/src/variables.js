@@ -11,4 +11,4 @@ export let initial_Area_of_the_body_Phase2 = 3.5;
 export let initial_Drag_Coefficient_Phase2 = 1.5;
 
 // Simulation Speed:
-export const SimulationSpeed = 0.01
+export const SimulationSpeed = 0.1
