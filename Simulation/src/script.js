@@ -1,12 +1,11 @@
-import './style.css';
-import * as THREE from 'three'
-import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { PointerLockControls } from 'three/addons/controls/PointerLockControls.js';
-import { FBXLoader } from 'three/addons/loaders/FBXLoader.js';
-import * as dat from 'dat.gui';
+import "./style.css";
+import * as THREE from "three";
+import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+import { PointerLockControls } from "three/addons/controls/PointerLockControls.js";
+import { FBXLoader } from "three/addons/loaders/FBXLoader.js";
+import * as dat from "dat.gui";
 import * as Constants from "./constants";
 import * as Variables from "./variables";
-
 
 // Parameters:
 const physicsParameters = {
@@ -17,8 +16,7 @@ const physicsParameters = {
 const parameters = {
   color: 0xff0000,
 };
-//  /Parameters 
-
+// Parameters
 
 // d = (1/2) * g * t ^ 2  the formula to calculate the distance surpassed of a free falling object
 
@@ -54,12 +52,12 @@ let fps = 1;
 
 /* /Variables */
 
-
 /* Functions */
 
 /* interpolating the opening of the parachute  */
 
 function interpolate(start, end, x) {
+  // Sigmnoid function
   return start + (end - start) * (1 / (1 + Math.exp(-5 * (x - 0.5))));
 }
 
@@ -70,7 +68,7 @@ function interpolate_drag_coeff(start, end, curr_area) {
   return (
     start +
     (end - start) *
-    Math.exp(-0.1 * Math.pow(curr_area / Area_of_the_body_Phase2 - 1, 2))
+      Math.exp(-0.1 * Math.pow(curr_area / Area_of_the_body_Phase2 - 1, 2))
   );
 }
 
@@ -126,16 +124,16 @@ function degreesToRadians(degrees) {
   var radians = degrees * (Math.PI / 180);
   return radians;
 }
+// TODO: print parchuter coordinates
 
-// double check if the values are correct 
+// TODO: double check if the values are correct
 function coriolis(altitude, latitude) {
   // deflection = 1/3 sqrt(8 * h ^ 3 / g) * w * cos( lambda )
 
-  let velocity_eastward = 4 * Constants.W * altitude * Math.cos(latitude);
+  let velocity_eastward = 4 * Constants.W * altitude * Math.abs(Math.sin(latitude));
 
   return velocity_eastward;
 }
-
 
 const getElemet = document.querySelector(".statisPanel");
 const getShow = document.querySelector(".show");
@@ -147,7 +145,6 @@ getElemet.addEventListener("click", function () {
 
 getShow.addEventListener("click", function () {
   getElemet.style.transform = "";
-
 
   // document.addEventListener("keydown", function (event) {
   //   if (event.key == "o") {
@@ -179,26 +176,25 @@ getShow.addEventListener("click", function () {
   }, 200);
 });
 
-
 // Cursor:
 const cursor = {
   x: 0,
-  y: 0
-}
+  y: 0,
+};
 
-window.addEventListener('mousemove', (event) => {
+window.addEventListener("mousemove", (event) => {
   cursor.x = event.clientX / sizes.width - 0.5;
-  cursor.y = - (event.clientY / sizes.height - 0.5);
+  cursor.y = -(event.clientY / sizes.height - 0.5);
 });
 
 // Sizes:
 const sizes = {
   width: window.innerWidth,
-  height: window.innerHeight
-}
+  height: window.innerHeight,
+};
 
 // Canvas:
-const canvas = document.querySelector('canvas.webgl');
+const canvas = document.querySelector("canvas.webgl");
 
 // Scene:
 const scene = new THREE.Scene();
@@ -207,32 +203,30 @@ const scene = new THREE.Scene();
 const helper = new THREE.AxesHelper(100);
 scene.add(helper);
 
-
 // SkyBox:
 const skyTexture = new THREE.CubeTextureLoader().load([
-  '/Standard-Cube-Map/px.png',
-  '/Standard-Cube-Map/nx.png',
-  '/Standard-Cube-Map/py.png',
-  '/Standard-Cube-Map/ny.png',
-  '/Standard-Cube-Map/pz.png',
-  '/Standard-Cube-Map/nz.png',
+  "/Standard-Cube-Map/px.png",
+  "/Standard-Cube-Map/nx.png",
+  "/Standard-Cube-Map/py.png",
+  "/Standard-Cube-Map/ny.png",
+  "/Standard-Cube-Map/pz.png",
+  "/Standard-Cube-Map/nz.png",
 ]);
 
-const shader = THREE.ShaderLib['cube'];
-shader.uniforms['tCube'].value = skyTexture;
+const shader = THREE.ShaderLib["cube"];
+shader.uniforms["tCube"].value = skyTexture;
 
 const skyBoxMaterial = new THREE.ShaderMaterial({
   fragmentShader: shader.fragmentShader,
   vertexShader: shader.vertexShader,
   uniforms: shader.uniforms,
   depthWrite: false,
-  side: THREE.BackSide
+  side: THREE.BackSide,
 });
 
 const skyBoxGeometry = new THREE.BoxGeometry(10000, 10000, 20000);
 const skyBox = new THREE.Mesh(skyBoxGeometry, skyBoxMaterial);
 scene.add(skyBox);
-
 
 // Parachuter (temporarily):
 
@@ -259,46 +253,54 @@ scene.add(skyBox);
 
 // 				} );
 
-
 const parachuterGeometry = new THREE.BoxGeometry(50, 50, 50);
-const parachuterMaterial = new THREE.MeshBasicMaterial({ color: parameters.color });
+const parachuterMaterial = new THREE.MeshBasicMaterial({
+  color: parameters.color,
+});
 const parachuter = new THREE.Mesh(parachuterGeometry, parachuterMaterial);
 parachuter.position.y = 5000;
 scene.add(parachuter);
-
-
 
 // Dat GUI:
 const gui = new dat.GUI({ width: 300 });
 
 // Create a new folder
-const Parachuter = gui.addFolder('Parachuter');
-const physics = gui.addFolder('physics');
-Parachuter.add(parachuterMaterial, 'visible');
-Parachuter.add(parachuterMaterial, 'wireframe');
-Parachuter.addColor(parameters, 'color').onChange(() => {
-  parachuterMaterial.color.set(parameters.color)
+const Parachuter = gui.addFolder("Parachuter");
+const physics = gui.addFolder("physics");
+Parachuter.add(parachuterMaterial, "visible");
+Parachuter.add(parachuterMaterial, "wireframe");
+Parachuter.addColor(parameters, "color").onChange(() => {
+  parachuterMaterial.color.set(parameters.color);
 });
 
 // Define a variable to store the button action
-const buttonAction = function() {
+const buttonAction = function () {
   location.reload();
 };
 
 // Add the button control to the GUI
-gui.add({ clickButton: buttonAction }, 'clickButton').name('Reload The Simulation!');
-
+gui
+  .add({ clickButton: buttonAction }, "clickButton")
+  .name("Reload The Simulation!");
 
 // Camera:
-const camera = new THREE.PerspectiveCamera(75, sizes.width / sizes.height, 0.1, 10000);
-camera.position.set(parachuter.position.x + 100, parachuter.position.y + 100, parachuter.position.z);
+const camera = new THREE.PerspectiveCamera(
+  75,
+  sizes.width / sizes.height,
+  0.1,
+  10000
+);
+camera.position.set(
+  parachuter.position.x + 100,
+  parachuter.position.y + 100,
+  parachuter.position.z
+);
 skyBox.position.set(camera.position.x, camera.position.y, camera.position.z);
 
-window.addEventListener('resize', () => {
-
+window.addEventListener("resize", () => {
   // Update The Size:
-  sizes.width = window.innerWidth
-  sizes.height = window.innerHeight
+  sizes.width = window.innerWidth;
+  sizes.height = window.innerHeight;
 
   // Update Aspect Ration:
   camera.aspect = sizes.width / sizes.height;
@@ -308,19 +310,18 @@ window.addEventListener('resize', () => {
   renderer.setSize(sizes.width, sizes.height);
 
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-})
+});
 
-window.addEventListener('dblclick', () => {
+window.addEventListener("dblclick", () => {
   if (!document.fullscreenElement) {
     canvas.requestFullscreen();
   } else {
     document.exitFullscreen();
   }
-})
-
+});
 
 // Renderer:
-const renderer = new THREE.WebGLRenderer({ canvas: canvas })
+const renderer = new THREE.WebGLRenderer({ canvas: canvas });
 renderer.setSize(sizes.width, sizes.height);
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 
@@ -332,57 +333,62 @@ controlsOrbit.minDistance = 200;
 controlsOrbit.target = parachuter.position;
 controlsOrbit.distance = 5;
 
-
 const direction = new THREE.Vector3();
 
 // Set up the movement speed:
 const speed = 100;
 
 // Set up the keyboard event handlers:
-document.addEventListener('keydown', (event) => {
+document.addEventListener("keydown", (event) => {
   switch (event.code) {
-    case 'ArrowUp':
+    case "ArrowUp":
       direction.z = -1;
       break;
-    case 'ArrowLeft':
+    case "ArrowLeft":
       direction.x = -1;
       break;
-    case 'ArrowDown':
+    case "ArrowDown":
       direction.z = 1;
       break;
-    case 'ArrowRight':
+    case "ArrowRight":
       direction.x = 1;
       break;
-    case 'KeyQ':
+    case "KeyQ":
       direction.y = -1;
       break;
-    case 'KeyE':
+    case "KeyE":
       direction.y = 1;
       break;
-    case 'KeyT':
-      is_deployed = true
+    case "KeyT":
+      is_deployed = true;
+      break;
+    case "KeyG":
+      gravity_present = !gravity_present;
+      break;
+    case "KeyH":
+      is_dry = !is_dry;
       break;
   }
 });
 
-document.addEventListener('keyup', (event) => {
+document.addEventListener("keyup", (event) => {
   switch (event.code) {
-    case 'ArrowUp':
+    case "ArrowUp":
       direction.z = 0;
       break;
-    case 'ArrowLeft':
+    case "ArrowLeft":
       direction.x = 0;
       break;
-    case 'ArrowDown':
+    case "ArrowDown":
       direction.z = 0;
       break;
-    case 'ArrowRight':
+    case "ArrowRight":
       direction.x = 0;
       break;
-    case 'KeyQ':
+    case "KeyQ":
       direction.y = 0;
       break;
-    case 'KeyE':
+    case "KeyE":
       direction.y = 0;
       break;
   }
@@ -407,7 +413,6 @@ function insideAnimate() {
   prevTime = currentTime;
 
   controlsOrbit.update();
-
 
   // Player Movement:
   if (parachuter.position.y >= 75) {
@@ -434,10 +439,10 @@ function insideAnimate() {
 
     dragForce.setY(
       0.5 *
-      calc_airDensity(parachuter.position.y, Humidity_ratio) *
-      velocity_squared *
-      get_current_phase_drag_coeff(t) *
-      get_current_phase_area(t, Area_of_the_body_Phase2)
+        calc_airDensity(parachuter.position.y, Humidity_ratio) *
+        velocity_squared *
+        get_current_phase_drag_coeff(t) *
+        get_current_phase_area(t, Area_of_the_body_Phase2)
     );
 
     // console.log("weight:" + Weight.y + "   drag:" + dragForce.y);
@@ -448,7 +453,7 @@ function insideAnimate() {
     // }
 
     velocity.y += acceleration.y * SimulationSpeed;
-    velocity.z += coriolis(parachuter.position.y, 45) * SimulationSpeed;
+    velocity.z = interpolate (0,deflection,(1-parachuter.position.y/5000));
     // Altitude -= velocity.y * SimulationSpeed;
     // position = Altitude - 0.5 * acceleration.y * Math.pow(SimulationSpeed, 2);
 
@@ -464,17 +469,19 @@ function insideAnimate() {
     // Injection the Values in Panel!
     document.getElementById("weight").innerText = Weight.y.toPrecision(3);
     document.getElementById("drag").innerText = dragForce.y.toPrecision(3);
-    document.getElementById("acceleration").innerText = acceleration.y.toPrecision(3);
+    document.getElementById("acceleration").innerText =
+      acceleration.y.toPrecision(3);
     document.getElementById("velocity").innerText = velocity.y.toPrecision(3);
-    document.getElementById("altitude").innerText = parachuter.position.y.toPrecision(5);
+    document.getElementById("altitude").innerText =
+      parachuter.position.y.toPrecision(5);
     document.getElementById("time").innerText = time.toPrecision(3);
-    document.getElementById("coriolis_force").innerText = velocity.z.toPrecision(3);
+    document.getElementById("coriolis_force").innerText =
+      velocity.z.toPrecision(3);
     document.getElementById("deflection").innerText = deflection.toPrecision(3);
-    document.getElementById("air_density").innerText = `1.293 kg m−3`;
+    document.getElementById("air_density").innerText =calc_airDensity(parachuter.position.y,Humidity_ratio) +'kg m−3';
     document.getElementById("wind_draft").innerText = 0;
 
     time += SimulationSpeed;
-
   } else {
     parachuter.position.y = 25;
   }
