@@ -1,33 +1,36 @@
 import "./style.css";
 import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
-import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
+import { FBXLoader } from "three/examples/jsm/loaders/FBXLoader.js";
 import * as dat from "dat.gui";
 import * as Constants from "./constants";
 import * as Variables from "./variables";
 
 // Parameters:
 const physicsParameters = {
-  weight: Variables.initial_mass,
+  mass: Variables.initial_mass,
 };
 
 // Parameters:
 const parameters = {
   color: 0xff0000,
 };
+
 // Parameters
 
 // d = (1/2) * g * t ^ 2  the formula to calculate the distance surpassed of a free falling object
 
 /* Variables */
-
-var startSimulation =false;
+var startSimulation = false;
 var t = 0;
 var time = 1;
+var loadHang = true;
+var loadLanding = true;
+var loadParachuteDeploy = true;
 
 // controlled
 let Humidity_ratio = Variables.initial_Humidity_ratio;
-let mass = physicsParameters.weight;
+let mass = physicsParameters.mass;
 let Altitude = Variables.initial_Altitude;
 let Area_of_the_body_Phase1 = Variables.initial_Area_of_the_body_Phase1;
 let Drag_Coefficient_Phase1 = Variables.initial_Drag_Coefficient_Phase1;
@@ -40,15 +43,12 @@ let Drag_Coefficient_Phase2 = Variables.initial_Drag_Coefficient_Phase2;
 let Weight = new THREE.Vector3(0, 0, 0);
 let dragForce = new THREE.Vector3(0, 0, 0); // y
 let velocity = new THREE.Vector3(); //y and possibly x,z
-let pressure;
 let acceleration = new THREE.Vector3(0, 0, 0); //y and possibly x,z
-let position = Altitude;
 
 let gravity_present = true;
-let phi = 0;
 let is_deployed = false;
-let is_dry = true;
-let fps = 1;
+let is_dry = false;
+let Temperature_sea_level = 10;
 
 /* /Variables */
 
@@ -57,7 +57,7 @@ let fps = 1;
 /* interpolating the opening of the parachute  */
 
 function interpolate(start, end, x) {
-  // Sigmnoid function
+  // Sigmoid function
   return start + (end - start) * (1 / (1 + Math.exp(-5 * (x - 0.5))));
 }
 
@@ -97,8 +97,8 @@ function toggle_gravity() {
   }
 }
 
-function calc_airDensity(altitude, phi) {
-  const T0 = 288.15; // K
+function calc_airDensity(altitude, phi, temperature_sea_level) {
+  const T0 = temperature_sea_level + 273.15; // K
   const L = 0.0065; // Temperature lapse rate K/m
   const P0 = 101325; // Pa
   const Md = 0.0289652; // mol | equation: M=m/n | dry air molar mass
@@ -124,17 +124,18 @@ function degreesToRadians(degrees) {
   var radians = degrees * (Math.PI / 180);
   return radians;
 }
+
 // TODO: print parchuter coordinates
 
 // TODO: double check if the values are correct
-function coriolis(altitude, latitude) {
-  // deflection = 1/3 sqrt(8 * h ^ 3 / g) * w * cos( lambda )
+// function coriolis(altitude, latitude) {
+//   // deflection = 1/3 sqrt(8 * h ^ 3 / g) * w * cos( lambda )
 
-  let velocity_eastward =
-    4 * Constants.W * altitude * Math.abs(Math.sin(latitude));
+//   let velocity_eastward =
+//     4 * Constants.W * altitude * Math.abs(Math.sin(latitude));
 
-  return velocity_eastward;
-}
+//   return velocity_eastward;
+// }
 
 const getElemet = document.querySelector(".statisPanel");
 const getShow = document.querySelector(".show");
@@ -225,86 +226,219 @@ const skyBoxMaterial = new THREE.ShaderMaterial({
   side: THREE.BackSide,
 });
 
-const skyBoxGeometry = new THREE.BoxGeometry(10000, 10000, 20000);
+const skyBoxGeometry = new THREE.BoxGeometry(100000, 100000, 200000);
 const skyBox = new THREE.Mesh(skyBoxGeometry, skyBoxMaterial);
 scene.add(skyBox);
 
-
-
-// Parachuter NOW 
+// Parachuter NOW
 
 // Add a Model:
-const loader = new GLTFLoader();
+const loader = new FBXLoader();
+var parachuteAnimationAction;
+var model = new THREE.Group();
+var parachute_model = new THREE.Group();
+var model_loaded = false;
+var parachute_translation_factor_x = 112;
+var parachute_translation_factor_z = 20;
 
-let mesh;
-// Load a glTF resource
-loader.load (
-  // path to the file
-  "models/skydiver.glb",
-
-  // called when the resource is loaded
-  function (gltf) {
-    mesh = gltf.scene.children[0];
-    const animation = gltf.animations[0];
-
-    // Create an AnimationMixer, which is used to play and control animations
-    const mixer = new THREE.AnimationMixer(gltf.scene);
-
-    // Create an AnimationAction, which represents a single animation that can be played
-    const action = mixer.clipAction(animation);
-
-    // Start playing the animation
-    action.play();
-    // Set the scale of the mesh
-    mesh.scale.set(2, 2, 2);
-    mesh.position.y = 5000;
-
-    let prevTime = performance.now();
-
-    function ss() {
-      requestAnimationFrame(ss);
-      const currentTime = performance.now();
-      const delta = currentTime - prevTime;
-      prevTime = currentTime;
-      
-      mesh.position.y -= 1 * delta;
-    }
-    ss();
-    // access the loaded object
-    const model = gltf.scene;
-    {
-      // Get the animation
-      const animation = gltf.animations[0];
-
-      // Create an AnimationMixer, which is used to play and control animations
-      const mixer = new THREE.AnimationMixer(gltf.scene);
-
-      // Create an AnimationAction, which represents a single animation that can be played
-      const action = mixer.clipAction(animation);
-
-      // Start playing the animation
-      action.play();
-
-      // add the model to the scene
-      scene.add(mesh);
-    }
-  },
-
-  // called while loading is progressing
-  function (xhr) {
-    console.log((xhr.loaded / xhr.total) * 100 + "% loaded");
-    if(xhr.loaded == 100){
-      startSimulation;
-    }
-  },
-
-  // called when loading has errors
-  function (error) {
-    console.log("An error happened", error);
+class LoadModel {
+  constructor() {
+    this._Initialize();
   }
-);
 
-const parachuterGeometry = new THREE.BoxGeometry(50, 50, 50);
+  _Initialize() {
+    this._mixers = [];
+    this._previousRAF = null;
+
+    this._LoadAnimatedModel();
+    this._RAF();
+  }
+
+  _LoadAnimatedModel() {
+    const loader = new FBXLoader();
+    const loader2 = new FBXLoader();
+    loader.setPath("models/");
+    loader2.setPath("models/");
+    loader2.load("parachute.fbx", (fbx) => {
+      fbx.scale.setScalar(1);
+      fbx.rotateX(degreesToRadians(85));
+      fbx.traverse((c) => {
+        c.castShadow = true;
+      });
+
+      const m = new THREE.AnimationMixer(fbx);
+      this._mixers.push(m);
+      parachuteAnimationAction = m.clipAction(fbx.animations[0]);
+      parachuteAnimationAction.timeScale = 0;
+      parachuteAnimationAction.play();
+
+      // const anim = new FBXLoader();
+      // anim.setPath("models/");
+      // anim.load("pubg parachute.fbx", (anim) => {
+      //   const m = new THREE.AnimationMixer(parachute_model);
+      //   this._mixers.push(m);
+      //   parachuteAnimationAction = m.clipAction(anim.animations[0]);
+      //   parachuteAnimationAction.timeScale = 0;
+      //   parachuteAnimationAction.play();
+      // });
+
+      parachute_model = fbx;
+      scene.add(parachute_model);
+    });
+
+    loader.load("skydiver.fbx", (fbx) => {
+      fbx.scale.setScalar(1);
+      
+      const anim = new FBXLoader();
+      anim.setPath("models/");
+      anim.load("fallingAnim.fbx", (anim) => {
+        const m = new THREE.AnimationMixer(fbx);
+        this._mixers.push(m);
+        const falling = m.clipAction(anim.animations[0]);
+        falling.timeScale=1.5;
+        falling.play();
+      });
+
+      model_loaded = true;
+      console.log(model_loaded);
+      model = fbx;
+      scene.add(model);
+    });
+  }
+
+  _RAF() {
+    requestAnimationFrame((t) => {
+      if (this._previousRAF === null) {
+        this._previousRAF = t;
+      }
+
+      if (is_deployed && loadHang) {
+        const anim = new FBXLoader();
+        anim.setPath("models/");
+        anim.load("HangingIdle.fbx", (anim) => {
+          const m = new THREE.AnimationMixer(model);
+          this._mixers.push(m);
+          const idle = m.clipAction(anim.animations[0]);
+          idle.play();
+        });
+        loadHang = false;
+      }
+
+      if (parachuter.position.y == 0 && loadLanding) {
+        is_deployed = false;
+        parachute_model.scale.set(0, 0, 0);
+        const anim = new FBXLoader();
+        anim.setPath("models/");
+        anim.load("Falling To Roll.fbx", (anim) => {
+          const m = new THREE.AnimationMixer(model);
+          this._mixers.push(m);
+          const idle = m.clipAction(anim.animations[0]);
+          idle.play();
+        });
+
+        var self = this;
+        setTimeout(() => {
+          anim.load("Idle.fbx", (anim) => {
+            const m = new THREE.AnimationMixer(model);
+            self._mixers.push(m);
+            const idle = m.clipAction(anim.animations[0]);
+            idle.play();
+            parachuter.position.z += 250;
+          });
+        }, 1500);
+
+        loadLanding = false;
+      }
+
+      if (is_deployed && loadParachuteDeploy) {
+        parachute_model.rotateX(degreesToRadians(-85));
+        parachute_translation_factor_x += 35;
+        parachute_translation_factor_z = 3;
+
+        parachuteAnimationAction.timeScale = 1;
+        parachuteAnimationAction.setLoop(THREE.LoopOnce);
+        parachuteAnimationAction.play();
+
+        loadParachuteDeploy = false;
+      }
+
+      model.position.copy(parachuter.position);
+      parachute_model.position.set(
+        parachuter.position.x,
+        // parachuter.position.y + 280,
+        parachuter.position.y + parachute_translation_factor_x,
+        parachuter.position.z + parachute_translation_factor_z
+      );
+
+      this._RAF();
+      this._Step(t - this._previousRAF);
+      this._previousRAF = t;
+    });
+  }
+
+  _Step(timeElapsed) {
+    const timeElapsedS = timeElapsed * 0.001;
+    if (this._mixers) {
+      this._mixers.map((m) => m.update(timeElapsedS));
+    }
+  }
+}
+
+let Load_Everything = null;
+
+{
+  let light = new THREE.DirectionalLight(0xffffff, 1.0);
+  light.position.set(20, 100, 10);
+  light.target.position.set(0, 0, 0);
+  light.castShadow = true;
+  light.shadow.bias = -0.001;
+  light.shadow.mapSize.width = 2048;
+  light.shadow.mapSize.height = 2048;
+  light.shadow.camera.near = 0.1;
+  light.shadow.camera.far = 500.0;
+  light.shadow.camera.near = 0.5;
+  light.shadow.camera.far = 500.0;
+  light.shadow.camera.left = 100;
+  light.shadow.camera.right = -100;
+  light.shadow.camera.top = 100;
+  light.shadow.camera.bottom = -100;
+  scene.add(light);
+
+  light = new THREE.AmbientLight(0xffffff, 0.5);
+  scene.add(light);
+}
+
+var textureLoader = new THREE.TextureLoader();
+var texture = textureLoader.load("texture/ny1.png", function (loadedTexture) {
+  loadedTexture.wrapS = THREE.RepeatWrapping;
+  loadedTexture.wrapT = THREE.RepeatWrapping;
+  loadedTexture.repeat.set(100, 100); // Adjust the repeat values to control the texture repetition
+});
+var material = new THREE.MeshBasicMaterial({ map: texture });
+const plane = new THREE.Mesh(
+  new THREE.PlaneGeometry(10000, 10000, 100, 100),
+  material
+);
+plane.castShadow = false;
+plane.receiveShadow = true;
+plane.rotation.x = -Math.PI / 2;
+scene.add(plane);
+
+// const land = new THREE.SphereGeometry(1000,1000,1000);
+// // var textureLoader = new THREE.TextureLoader();
+// // var texture = textureLoader.load('texture/ny1.png', function (loadedTexture) {
+// //   loadedTexture.wrapS = THREE.RepeatWrapping;
+// //   loadedTexture.wrapT = THREE.RepeatWrapping;
+// //   loadedTexture.repeat.set(1000000, 1000000); // Adjust the repeat values to control the texture repetition
+// // });
+// const landMaterial = new THREE.MeshBasicMaterial(
+//   {color: 0x212121}
+// );
+// const earth=new THREE.Mesh(land,landMaterial);
+// earth.position.y=-1000;
+// scene.add(earth);
+
+const parachuterGeometry = new THREE.BoxGeometry(1, 1, 1);
 const parachuterMaterial = new THREE.MeshBasicMaterial({
   color: parameters.color,
 });
@@ -341,10 +475,11 @@ const camera = new THREE.PerspectiveCamera(
   0.1,
   10000
 );
+
 camera.position.set(
   parachuter.position.x + 100,
-  parachuter.position.y + 100,
-  parachuter.position.z
+  parachuter.position.y + 1,
+  parachuter.position.z - 100
 );
 skyBox.position.set(camera.position.x, camera.position.y, camera.position.z);
 
@@ -372,7 +507,13 @@ window.addEventListener("dblclick", () => {
 });
 
 // Renderer:
-const renderer = new THREE.WebGLRenderer({ canvas: canvas });
+const renderer = new THREE.WebGLRenderer({
+  canvas: canvas,
+  antialias: true,
+  precision: "highp",
+  powerPreference: "high-performance",
+  localClippingEnabled: false,
+});
 renderer.setSize(sizes.width, sizes.height);
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 
@@ -381,15 +522,15 @@ const controlsOrbit = new OrbitControls(camera, canvas);
 controlsOrbit.enableDamping = true;
 controlsOrbit.maxDistance = 1000;
 controlsOrbit.minDistance = 200;
-controlsOrbit.target = parachuter.position;
+controlsOrbit.target.setX(parachuter.position.x);
+controlsOrbit.target.setY(parachuter.position.y + 100);
+controlsOrbit.target.setZ(parachuter.position.z);
 controlsOrbit.distance = 5;
 
 const direction = new THREE.Vector3();
 
 // Set up the movement speed:
 const speed = 100;
-
-
 
 // Set up the keyboard event handlers:
 document.addEventListener("keydown", (event) => {
@@ -448,7 +589,8 @@ document.addEventListener("keyup", (event) => {
 });
 
 // Set up the animation loop:
-let prevTime = performance.now();
+let prevTime = Date.now();
+let prevTime2 = Date.now();
 
 let deflection =
   (1 / 3) *
@@ -458,99 +600,109 @@ let deflection =
 
 let SimulationSpeed = Variables.SimulationSpeed;
 
-function insideAnimate() {
+var Wind = new THREE.Vector3(0, 0, 0.0001);
 
-  requestAnimationFrame(animate);
-
-  console.log(mesh);
-  const currentTime = performance.now();
-  const delta = currentTime - prevTime;
-  prevTime = currentTime;
-
-  controlsOrbit.update();
-
-  // Player Movement:
-  if (parachuter.position.y >= 75) {
-    /* prev code */
-
-    if (is_deployed && current_Area < Area_of_the_body_Phase2) {
-      t += SimulationSpeed;
-      console.log(t);
-    }
-
-    Weight.setY(toggle_gravity() * mass);
-    let velocity_squared = Math.pow(velocity.y, 2);
-
-    // console.log(
-    //   "air_density:" +
-    //     calc_airDensity(parachuter.position.y, Humidity_ratio) +
-    //     "\nvelocity^2 = " +
-    //     velocity_squared +
-    //     "\ndragC = " +
-    //     get_current_phase_drag_coeff(t) +
-    //     "\nphase_area = " +
-    //     get_current_phase_area(t, Area_of_the_body_Phase2)
-    // );
-
-    dragForce.setY(
-      0.5 *
-        calc_airDensity(parachuter.position.y, Humidity_ratio) *
-        velocity_squared *
-        get_current_phase_drag_coeff(t) *
-        get_current_phase_area(t, Area_of_the_body_Phase2)
-    );
-
-    // console.log("weight:" + Weight.y + "   drag:" + dragForce.y);
-    acceleration.setY((Weight.y - dragForce.y) / mass);
-
-    // if (acceleration.y < precision / 100 && acceleration.y > 0) {
-    //   acceleration = 0;
-    // }
-
-    velocity.y += acceleration.y * SimulationSpeed;
-    velocity.z = interpolate(0, deflection, 1 - parachuter.position.y / 5000);
-    // Altitude -= velocity.y * SimulationSpeed;
-    // position = Altitude - 0.5 * acceleration.y * Math.pow(SimulationSpeed, 2);
-
-    /* prev code */
-
-    if (parachuter.position.y - velocity.y >= 0) {
-      parachuter.position.z += velocity.z * SimulationSpeed;
-      parachuter.position.y -= velocity.y * SimulationSpeed;
-    }
-
-    camera.position.y = parachuter.position.y + 100;
-
-    // Injection the Values in Panel!
-    document.getElementById("weight").innerText = Weight.y.toPrecision(3);
-    document.getElementById("drag").innerText = dragForce.y.toPrecision(3);
-    document.getElementById("acceleration").innerText =
-      acceleration.y.toPrecision(3);
-    document.getElementById("velocity").innerText = velocity.y.toPrecision(3);
-    document.getElementById("altitude").innerText =
-      parachuter.position.y.toPrecision(5);
-    document.getElementById("time").innerText = time.toPrecision(3);
-    document.getElementById("coriolis_force").innerText =
-      velocity.z.toPrecision(3);
-    document.getElementById("deflection").innerText = deflection.toPrecision(3);
-    document.getElementById("air_density").innerText =
-      calc_airDensity(parachuter.position.y, Humidity_ratio) + "kg m−3";
-    document.getElementById("wind_draft").innerText = 0;
-
-    time += SimulationSpeed;
-  } else {
-    parachuter.position.y = 25;
-  }
-
-  // -----------------
-
-  // Update the renderer:
-  renderer.render(scene, camera);
+function calc_WindDrift(Wind_velocity, falling_velocity, time) {
+  let Wd = (Wind_velocity * time) / falling_velocity;
+  return Wd;
 }
 
-let second = 1000;
+function insideAnimate(loaded) {
+  requestAnimationFrame(insideAnimate);
+  // synchronizing the time
+  // const currentTime = Date.now();
+  // const delta = currentTime - prevTime;
+  // prevTime = currentTime;
+
+  if (loaded) {
+    // Player Movement:
+    if (parachuter.position.y >= 50) {
+      /* prev code */
+
+      if (is_deployed && current_Area < Area_of_the_body_Phase2) {
+        t += 1 / parachuter.position.y;
+      }
+
+      Weight.setY(toggle_gravity() * mass);
+      let velocity_squared = Math.pow(velocity.y, 2);
+
+      dragForce.setY(
+        0.5 *
+          calc_airDensity(
+            parachuter.position.y,
+            Humidity_ratio,
+            Temperature_sea_level
+          ) *
+          velocity_squared *
+          get_current_phase_drag_coeff(t) *
+          get_current_phase_area(t, Area_of_the_body_Phase2)
+      );
+
+      acceleration.setY((Weight.y - dragForce.y) / mass);
+
+      velocity.y += acceleration.y * SimulationSpeed;
+      // velocity.z = interpolate(0, deflection, 1 - parachuter.position.y / 5000);
+      // velocity.add(Wind)
+      // Altitude -= velocity.y * SimulationSpeed;
+      // position = Altitude - 0.5 * acceleration.y * Math.pow(SimulationSpeed, 2);
+
+      /* /prev code */
+
+      // if (parachuter.position.y - velocity.y >= 0) {
+      parachuter.position.z = velocity.z;
+      parachuter.position.y -= velocity.y * SimulationSpeed;
+      // }
+
+      // if (camera.position.y > parachuter.position.y) {
+      //   camera.position.y = parachuter.position.y + 100;
+      // }
+      //camera.lookAt(parachuter.position);
+
+      // Injecting the Values into the Panel!
+      document.getElementById("weight").innerText = Weight.y.toPrecision(3);
+      document.getElementById("drag").innerText = dragForce.y.toPrecision(3);
+      document.getElementById("acceleration").innerText =
+        acceleration.y.toPrecision(3);
+      document.getElementById("velocity").innerText = velocity.y.toPrecision(3);
+      document.getElementById("altitude").innerText =
+        parachuter.position.y.toPrecision(5);
+      document.getElementById("time").innerText = time.toPrecision(3);
+      document.getElementById("coriolis_force").innerText =
+        parachuter.position.z.toPrecision(3);
+      document.getElementById("deflection").innerText =
+        deflection.toPrecision(3);
+      document.getElementById("air_density").innerText =
+        calc_airDensity(
+          parachuter.position.y,
+          Humidity_ratio,
+          Temperature_sea_level
+        ).toPrecision(3) + "kg m−3";
+      document.getElementById("wind_draft").innerText = 0;
+      document.getElementById("Cross-Sectional_Area").innerText =
+        get_current_phase_area(t, Area_of_the_body_Phase2).toPrecision(3);
+
+      time += SimulationSpeed;
+    } else {
+      parachuter.position.y = 0;
+    }
+    controlsOrbit.target.setY(parachuter.position.y + 100);
+  }
+}
+
 const animate = () => {
-  setTimeout(insideAnimate, 0);
+  requestAnimationFrame(animate);
+  const currentTime = Date.now();
+  const delta = currentTime - prevTime2;
+  prevTime2 = currentTime;
+
+  controlsOrbit.update(delta);
+
+  insideAnimate(model_loaded);
+
+  renderer.render(scene, camera);
 };
 
-animate();
+window.addEventListener("DOMContentLoaded", () => {
+  new LoadModel();
+  animate();
+});
